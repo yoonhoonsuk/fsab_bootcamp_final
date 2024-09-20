@@ -5,7 +5,10 @@ import dotenv from "dotenv"
 dotenv.config()
 
 import { db } from "./util/FirebaseInit.js";
-import { collection, getDocs, addDoc } from "firebase/firestore"
+import { collection, getDocs, query, where, updateDoc, addDoc } from "firebase/firestore"
+
+// const { collection, getDocs, query, where, updateDoc, addDoc } = require('firebase/firestore');
+// const db = require('./firebase'); // Your Firebase initialization
 
 const app = express();
 const port = 8080;
@@ -44,35 +47,35 @@ app.post("/", async (req, res) => {
 })
 
 // Update a task based on its title
-// Update a task based on its title
 app.put("/tasks/:title", async (req, res) => {
     const taskTitle = req.params.title; // Get the task title from the URL
     const taskUpdates = req.body; // Get the updated task data from the request body
 
     try {
-        // Query Firestore for the task with the matching title
+        // Query Firestore for the task with the given title
         const taskQuery = query(collection(db, "tasks"), where("title", "==", taskTitle));
         const querySnapshot = await getDocs(taskQuery);
 
         if (querySnapshot.empty) {
-            console.log("Task not found with title:", taskTitle);
+            // If no task is found with that title, send a 404 response
             return res.status(404).send("Task not found");
         }
 
-        // Get the first document reference from the query
-        const taskDoc = querySnapshot.docs[0].ref;
+        // Get the first matching document reference
+        const taskDocRef = querySnapshot.docs[0].ref;
 
-        // Update the task
-        await updateDoc(taskDoc, taskUpdates);
-        console.log("Successfully updated task with title:", taskTitle);
+        // Update the task with the new data
+        await updateDoc(taskDocRef, {
+            description: taskUpdates.description,
+            completed: taskUpdates.completed
+        });
+
         res.status(200).send("Successfully Updated Task");
     } catch (e) {
-        console.error("Error updating task:", e);
+        console.error(e);
         res.status(500).send("Error updating task");
     }
-});
-
-
+})
 
 
 function start() {
